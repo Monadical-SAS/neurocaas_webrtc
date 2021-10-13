@@ -81,7 +81,7 @@ class StreamClient:
             player = MediaPlayer(play_from)
             return player.audio, player.video
         else:
-            options = {"framerate": "30", "video_size": "640x480"}
+            options = {"framerate": "60", "video_size": "200x200"}
             if self.relay is None:
                 if platform.system() == "Darwin":
                     self.webcam = MediaPlayer(
@@ -93,7 +93,7 @@ class StreamClient:
                     )
                 else:
                     self.webcam = MediaPlayer(
-                        "/dev/video2", format="v4l2", options=options
+                        "/dev/video4", format="v4l2", options=options
                     )
                 self.relay = MediaRelay()
             return None, self.relay.subscribe(self.webcam.video)
@@ -187,7 +187,7 @@ class StreamClient:
         sdp = {
             "sdp": pc.localDescription.sdp,
             "type": pc.localDescription.type,
-            "video_transform": "edges",
+            "video_transform": "dlclive",
         }
         # print(sdp)
 
@@ -327,3 +327,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+

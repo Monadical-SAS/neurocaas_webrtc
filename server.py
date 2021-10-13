@@ -7,11 +7,18 @@ import ssl
 import uuid
 
 import cv2
+import numpy as np
 from aiohttp import web
-from av import VideoFrame
-
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder, MediaRelay
+from aiortc.contrib.media import (
+    MediaBlackhole, MediaPlayer,
+    MediaRecorder, MediaRelay
+)
+
+from av import VideoFrame
+from dlclive import DLCLive
+
+from utils import ConfigDLC, run_in_executor
 
 ROOT = os.path.dirname(__file__)
 
@@ -20,6 +27,7 @@ pcs = set()
 relay = MediaRelay()
 data_channel = None
 
+
 def channel_log(channel, t, message):
     print("channel(%s) %s %s" % (channel.label, t, message))
 
@@ -27,6 +35,7 @@ def channel_log(channel, t, message):
 def channel_send(channel, message):
     channel_log(channel, ">", message)
     channel.send(message)
+
 
 class VideoTransformTrack(MediaStreamTrack):
     """
@@ -39,6 +48,14 @@ class VideoTransformTrack(MediaStreamTrack):
         super().__init__()  # don't forget this!
         self.track = track
         self.transform = transform
+        self.cfg = ConfigDLC('dlc_config').get_config()
+        self.dlc_params = self.cfg["dlc_options"].get("dlclive-test")
+        del self.dlc_params['mode']
+        import pdb; pdb.set_trace()
+        self.dlc = DLCLive(**self.dlc_params)
+        self.first_time = True
+        frame = np.zeros((200, 200, 3), dtype='uint8')
+        self.dlc.init_inference(frame)
 
     async def recv(self):
         frame = await self.track.recv()
@@ -95,6 +112,11 @@ class VideoTransformTrack(MediaStreamTrack):
             new_frame.pts = frame.pts
             new_frame.time_base = frame.time_base
             return new_frame
+        elif self.transform == "dlclive":
+            img = frame.to_ndarray(format="bgr24")
+            pose = await run_in_executor(self.dlc.get_pose, img)
+            # await asyncio.sleep(1)
+            return frame
         else:
             return frame
 
@@ -228,3 +250,4 @@ if __name__ == "__main__":
     web.run_app(
         app, access_log=None, host=args.host, port=args.port, ssl_context=ssl_context
     )
+
