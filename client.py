@@ -26,6 +26,8 @@ from aiortc.contrib.media import (
     MediaStreamError,
 )
 
+from utils import ConfigDLC
+
 import media
 
 
@@ -61,6 +63,8 @@ class StreamClient:
         self.time_start = None
         self.queue = asyncio.Queue()
 
+        self.cfg = ConfigDLC('dlc_config').get_config()
+
         if self.record_video:
             self.recorder = MediaRecorder(self.record_filename)
         if self.show_video:
@@ -81,7 +85,15 @@ class StreamClient:
             player = MediaPlayer(play_from)
             return player.audio, player.video
         else:
-            options = {"framerate": "60", "video_size": "200x200"}
+            fps = self.cfg['cameras']['params']['fps']
+            width = self.cfg['cameras']['params']['resolution'][0]
+            height = self.cfg['cameras']['params']['resolution'][1]
+
+            options = {
+                "framerate": f"{fps}",
+                "video_size": f"{width}x{height}"
+            }
+
             if self.relay is None:
                 if platform.system() == "Darwin":
                     self.webcam = MediaPlayer(
@@ -187,7 +199,7 @@ class StreamClient:
         sdp = {
             "sdp": pc.localDescription.sdp,
             "type": pc.localDescription.type,
-            "video_transform": "dlclive",
+            "video_transform": f"{self.cfg['cameras']['video_transform']}",
         }
         # print(sdp)
 

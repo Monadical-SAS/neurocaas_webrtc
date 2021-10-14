@@ -48,14 +48,15 @@ class VideoTransformTrack(MediaStreamTrack):
         super().__init__()  # don't forget this!
         self.track = track
         self.transform = transform
-        self.cfg = ConfigDLC('dlc_config').get_config()
-        self.dlc_params = self.cfg["dlc_options"].get("dlclive-test")
-        del self.dlc_params['mode']
-        import pdb; pdb.set_trace()
-        self.dlc = DLCLive(**self.dlc_params)
-        self.first_time = True
-        frame = np.zeros((200, 200, 3), dtype='uint8')
-        self.dlc.init_inference(frame)
+        
+        if self.transform == 'dlclive':
+            self.cfg = ConfigDLC('dlc_config').get_config()
+            self.dlc_params = self.cfg["dlc_options"]
+            self.dlc = DLCLive(**self.dlc_params)
+            width = self.cfg['cameras']['params']['resolution'][0]
+            height = self.cfg['cameras']['params']['resolution'][1]
+            frame = np.zeros((height, width, 3), dtype='uint8')
+            self.dlc.init_inference(frame)
 
     async def recv(self):
         frame = await self.track.recv()

@@ -1,1 +1,46 @@
-{"cameras": {"testing": {"type": "OpenCVRTMPCam", "params": {"device": "rtsp://localhost:8554/input", "file": null, "resolution": [200, 200], "auto_exposure": 0, "exposure": 0, "gain": 0, "rotate": 0, "crop": null, "fps": 60, "display": true, "display_resize": 1.0}}}, "processor_dir": [], "processor_args": {}, "dlc_options": {"dlclive-test": {"model_path": "/home/cesar/dlc-live-copy/DLC_Dog_resnet_50_iteration-0_shuffle-0", "model_type": "base", "precision": "FP32", "cropping": null, "dynamic": [false, 0.5, 10], "resize": 1.0, "mode": "Optimize Latency"}}, "dlc_display_options": {"dlclive-test": {"cmap": "bgy", "radius": 3, "lik_thresh": 0.5}}, "subjects": ["test"], "directories": ["/home/cesar"]}
+{
+    "cameras": {
+        "type": "stream",
+        "params": {
+            "device": "/dev/video4",
+            "file": null,
+            "resolution": [
+                200,
+                200
+            ],
+            "auto_exposure": 0,
+            "exposure": 0,
+            "gain": 0,
+            "rotate": 0,
+            "crop": null,
+            "fps": 60,
+            "display": true,
+            "display_resize": 1.0
+        },
+        "video_transform": "edges"
+    },
+    "processor_dir": [],
+    "processor_args": {},
+    "dlc_options": {
+        "model_path": "./model/DLC_Dog_resnet_50_iteration-0_shuffle-0",
+        "model_type": "base",
+        "precision": "FP32",
+        "cropping": null,
+        "dynamic": [
+            false,
+            0.5,
+            10
+        ],
+        "resize": 1.0
+    },
+    "dlc_display_options": {
+        "dlclive-test": {
+            "cmap": "bgy",
+            "radius": 3,
+            "lik_thresh": 0.5
+        }
+    },
+    "subjects": [
+        "test"
+    ]
+}
