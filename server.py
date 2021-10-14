@@ -5,6 +5,7 @@ import logging
 import os
 import ssl
 import uuid
+import time
 
 import cv2
 import numpy as np
@@ -14,11 +15,16 @@ from aiortc.contrib.media import (
     MediaBlackhole, MediaPlayer,
     MediaRecorder, MediaRelay
 )
+import base64
 
 from av import VideoFrame
 from dlclive import DLCLive
 
-from utils import ConfigDLC, run_in_executor
+from utils import (
+    ConfigDLC, run_in_executor,
+    serialize_numpy_array
+)
+
 
 ROOT = os.path.dirname(__file__)
 
@@ -33,7 +39,7 @@ def channel_log(channel, t, message):
 
 
 def channel_send(channel, message):
-    channel_log(channel, ">", message)
+    # channel_log(channel, ">", message)
     channel.send(message)
 
 
@@ -60,7 +66,7 @@ class VideoTransformTrack(MediaStreamTrack):
 
     async def recv(self):
         frame = await self.track.recv()
-        # channel_send(data_channel, f"Tiempo server: {time.time()}")
+        # channel_send(data_channel, f"Tiempo server: {time.time()}") 
 
         if self.transform == "cartoon":
             img = frame.to_ndarray(format="bgr24")
@@ -116,7 +122,7 @@ class VideoTransformTrack(MediaStreamTrack):
         elif self.transform == "dlclive":
             img = frame.to_ndarray(format="bgr24")
             pose = await run_in_executor(self.dlc.get_pose, img)
-            # await asyncio.sleep(1)
+            channel_send(data_channel, serialize_numpy_array(pose)) 
             return frame
         else:
             return frame
@@ -141,17 +147,6 @@ async def offer(request):
         recorder = MediaRecorder(args.record_to)
     else:
         recorder = MediaBlackhole()
-
-    @pc.on("datachannel")
-    def on_datachannel(channel):
-
-        global data_channel
-        data_channel = channel
-
-        @channel.on("message")
-        def on_message(message):
-            if isinstance(message, str) and message.startswith("ping"):
-                channel.send("pong" + message[4:])
 
     @pc.on("connectionstatechange")
     async def on_connectionstatechange():
@@ -184,6 +179,9 @@ async def offer(request):
 
     @pc.on("datachannel")
     def on_datachannel(channel):
+        print("DENTRO",channel)
+        global data_channel
+        data_channel = channel
         channel_log(channel, "-", "created by remote party")
 
         @channel.on("message")

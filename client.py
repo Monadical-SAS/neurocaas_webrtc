@@ -26,7 +26,7 @@ from aiortc.contrib.media import (
     MediaStreamError,
 )
 
-from utils import ConfigDLC
+from utils import ConfigDLC, deserialize_numpy_array
 
 import media
 
@@ -173,6 +173,7 @@ class StreamClient:
 
         # DataChannel
         channel = pc.createDataChannel("data-channel")
+        
 
         async def send_pings():
             while True:
@@ -194,12 +195,14 @@ class StreamClient:
                     elapsed_ms = (self.current_stamp() - int(message[5:])) / 1000
                     print(" RTT %.2f ms" % elapsed_ms)
 
+                
         await pc.setLocalDescription(await pc.createOffer())
 
         sdp = {
             "sdp": pc.localDescription.sdp,
             "type": pc.localDescription.type,
             "video_transform": f"{self.cfg['cameras']['video_transform']}",
+            "return_poses": True
         }
         # print(sdp)
 
@@ -333,7 +336,7 @@ async def main():
     await sc.start()
     # print(sc.worker())
     async for msg in sc.get_reader():
-        print(msg)
+        print(deserialize_numpy_array(msg))
 
 
 

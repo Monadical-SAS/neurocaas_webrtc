@@ -3,6 +3,8 @@ import json
 import os
 from functools import partial
 
+import base64
+import numpy as np
 
 class ConfigDLC(object):
     """docstring for ConfigDLC."""
@@ -61,3 +63,24 @@ class ConfigDLC(object):
 def run_in_executor(func, *args, executor=None):
     callback = partial(func, *args)
     return asyncio.get_event_loop().run_in_executor(executor, callback)
+
+
+def serialize_numpy_array(ndarray):
+    msg = {
+        '__ndarray__': base64.b64encode(ndarray.tobytes()).decode('utf8'),
+        'dtype': ndarray.dtype.name,
+        'shape': ndarray.shape
+    }
+    return json.dumps(msg)
+
+
+def deserialize_numpy_array(json_dump):
+    msg = json.loads(json_dump)
+    ndarray = (
+        np.frombuffer(
+            base64.b64decode(msg['__ndarray__']),
+            dtype=msg['dtype']
+        )
+        .reshape(msg['shape'])
+    )
+    return ndarray
