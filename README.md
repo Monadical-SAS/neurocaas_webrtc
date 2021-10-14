@@ -36,6 +36,59 @@ To run the DeepLabCup-Live proccess, you need to have the trained model that you
 
 :construction:
 
+### Run DeepLabCut-Live process
+You will stimate poses from the video `dog_clip.avi` using deeplabcut-live.
+
+**1. Download the model**
+```bash
+
+wget models http://deeplabcut.rowland.harvard.edu/models/DLC_Dog_resnet_50_iteration-0_shuffle-0.tar.gz -O - | tar -xz -C ./model/
+
+```
+**2. Update the config file**
+
+To run DeepLabCut, you need to set it in the video_transform field and set a low video resolution (200x200) to get the ML pipeline to go faster
+
+```json
+{
+    "cameras": {
+        "type": "stream",
+        "params": {
+            "device": "/dev/video4",  # Set the device
+            "file": null,
+            "resolution": [   # set the resolution
+                200,
+                200
+            ],
+            "fps": 60,    # Set frame per seconds
+        },
+        "video_transform": "dlclive"   # Set the dlclive mode
+    },
+    
+        ...
+```
+
+**3. Send video to virtual device**
+
+you can send it directly or use the bash script. With bash script you will have more options. Remember that you need to have installed  v4l2loopback
+
+```bash
+ ffmpeg -re -stream_loop -1 -i dog_clip.avi -vf scale=640:480 -f v4l2 /dev/video4
+```
+**4. Run the server**
+```bash
+python server.py
+```
+**5. Run the client**
+```bash
+python client.py --url http://127.0.0.1:8080/offer --record False --ping False --show True
+```
+Note that in this case, the server and the client is runnning at the same machine. If the server is running
+in a remote machine, you need to pass the public ip in the `--url` option of the client. 
+
+For the case of a remote server, you need to download the model in it because the server is responsible of run 
+the DeepLabCutLive ML pipeline and transform the frames.
+
 ## How to use
 
 ### Set the configuration
@@ -151,5 +204,4 @@ optional arguments:
 # Run the client
 python client.py --url http://127.0.0.1:8080/offer --record False --ping False --show True
 ```
-
-The client require that the server is running, otherwise it will show an error connection. If you are going to send a video, you need begin to send it first, before run the client, otherwise the client  will not be able to read the virtual device. In the case you are going to use the webcam, the client will load the device itself.
+The client requires that the server is running, otherwise, it will show an error connection. If you are going to send a video, you need to begin to send it first, before running the client, otherwise, the client will not be able to read the virtual device. In the case you are going to use the webcam, the client will load the device itself.

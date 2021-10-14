@@ -8,14 +8,7 @@
                 200,
                 200
             ],
-            "auto_exposure": 0,
-            "exposure": 0,
-            "gain": 0,
-            "rotate": 0,
-            "crop": null,
-            "fps": 60,
-            "display": true,
-            "display_resize": 1.0
+            "fps": 60
         },
         "video_transform": "edges"
     },
