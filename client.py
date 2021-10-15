@@ -44,6 +44,7 @@ class StreamClient:
         record_filename="test.mp4",
         play_from=None,
         ping_pong=False,
+        return_poses=False
     ):
         self.signaling = signaling
         self.server_url = url
@@ -52,6 +53,7 @@ class StreamClient:
         self.record_filename = record_filename
         self.play_from = play_from
         self.ping_pong = ping_pong
+        self.return_poses = return_poses
 
         self.pc = RTCPeerConnection()
 
@@ -202,7 +204,7 @@ class StreamClient:
             "sdp": pc.localDescription.sdp,
             "type": pc.localDescription.type,
             "video_transform": f"{self.cfg['cameras']['video_transform']}",
-            "return_poses": True
+            "return_poses": self.return_poses
         }
         # print(sdp)
 
@@ -293,6 +295,15 @@ async def main():
         type=str,
         default="",
     )
+    
+    parser.add_argument(
+        "--poses",
+        help="Return poses in datachannel",
+        type=eval,
+        choices=[True, False],
+        default="False",
+    )
+    
     parser.add_argument("--verbose", "-v", action="count")
     add_signaling_arguments(parser)
 
@@ -332,6 +343,7 @@ async def main():
         record_filename=args.filename,
         play_from=args.play_from,
         ping_pong=args.ping_pong,
+        return_poses=args.poses
     )
     await sc.start()
     # print(sc.worker())

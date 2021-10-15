@@ -50,11 +50,11 @@ class VideoTransformTrack(MediaStreamTrack):
 
     kind = "video"
 
-    def __init__(self, track, transform):
+    def __init__(self, track, transform, **kwargs):
         super().__init__()  # don't forget this!
         self.track = track
         self.transform = transform
-        
+        self.return_poses = kwargs.get('return_poses')
         if self.transform == 'dlclive':
             self.cfg = ConfigDLC('dlc_config').get_config()
             self.dlc_params = self.cfg["dlc_options"]
@@ -122,7 +122,8 @@ class VideoTransformTrack(MediaStreamTrack):
         elif self.transform == "dlclive":
             img = frame.to_ndarray(format="bgr24")
             pose = await run_in_executor(self.dlc.get_pose, img)
-            channel_send(data_channel, serialize_numpy_array(pose)) 
+            if self.return_poses:
+                channel_send(data_channel, serialize_numpy_array(pose))
             return frame
         else:
             return frame
@@ -165,7 +166,9 @@ async def offer(request):
         elif track.kind == "video":
             pc.addTrack(
                 VideoTransformTrack(
-                    relay.subscribe(track), transform=params["video_transform"]
+                    relay.subscribe(track), 
+                    transform=params["video_transform"],
+                    return_poses=params["return_poses"]
                 )
             )
             if args.record_to:
