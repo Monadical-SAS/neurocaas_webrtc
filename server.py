@@ -22,7 +22,8 @@ from dlclive import DLCLive
 
 from utils import (
     ConfigDLC, run_in_executor,
-    serialize_numpy_array
+    serialize_numpy_array,
+    set_poses_in_frame
 )
 
 
@@ -58,6 +59,7 @@ class VideoTransformTrack(MediaStreamTrack):
         if self.transform == 'dlclive':
             self.cfg = ConfigDLC('dlc_config').get_config()
             self.dlc_params = self.cfg["dlc_options"]
+            self.display_options = self.cfg['dlc_display_options']
             self.dlc = DLCLive(**self.dlc_params)
             width = self.cfg['cameras']['params']['resolution'][0]
             height = self.cfg['cameras']['params']['resolution'][1]
@@ -120,11 +122,19 @@ class VideoTransformTrack(MediaStreamTrack):
             new_frame.time_base = frame.time_base
             return new_frame
         elif self.transform == "dlclive":
+            # Perform pose detections
             img = frame.to_ndarray(format="bgr24")
             pose = await run_in_executor(self.dlc.get_pose, img)
+            img = set_poses_in_frame(img, pose, self.display_options)
+            
+            # rebuild a VideoFrame, preserving timing information
+            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
+            new_frame.pts = frame.pts
+            new_frame.time_base = frame.time_base
+            
             if self.return_poses:
                 channel_send(data_channel, serialize_numpy_array(pose))
-            return frame
+            return new_frame
         else:
             return frame
 
