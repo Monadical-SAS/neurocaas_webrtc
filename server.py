@@ -125,7 +125,7 @@ class VideoTransformTrack(MediaStreamTrack):
             # Perform pose detections
             img = frame.to_ndarray(format="bgr24")
             pose = await run_in_executor(self.dlc.get_pose, img)
-            img = set_poses_in_frame(img, pose, self.display_options)
+            img = await run_in_executor(set_poses_in_frame, img, pose, self.display_options)
             
             # rebuild a VideoFrame, preserving timing information
             new_frame = VideoFrame.from_ndarray(img, format="bgr24")
