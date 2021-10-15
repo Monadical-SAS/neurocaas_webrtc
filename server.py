@@ -68,7 +68,7 @@ class VideoTransformTrack(MediaStreamTrack):
 
     async def recv(self):
         frame = await self.track.recv()
-        # channel_send(data_channel, f"Tiempo server: {time.time()}") 
+        channel_send(data_channel, f"Tiempo server: {time.time()}") 
 
         if self.transform == "cartoon":
             img = frame.to_ndarray(format="bgr24")
@@ -126,6 +126,7 @@ class VideoTransformTrack(MediaStreamTrack):
             img = frame.to_ndarray(format="bgr24")
             pose = await run_in_executor(self.dlc.get_pose, img)
             img = await run_in_executor(set_poses_in_frame, img, pose, self.display_options)
+            # img = set_poses_in_frame(img, pose, self.display_options)
             
             # rebuild a VideoFrame, preserving timing information
             new_frame = VideoFrame.from_ndarray(img, format="bgr24")
@@ -159,6 +160,21 @@ async def offer(request):
     else:
         recorder = MediaBlackhole()
 
+    @pc.on("datachannel")
+    def on_datachannel(channel):
+        print("DENTRO",channel)
+        global data_channel
+        data_channel = channel
+        channel_log(channel, "-", "created by remote party")
+
+        @channel.on("message")
+        def on_message(message):
+            channel_log(channel, "<", message)
+
+            if isinstance(message, str) and message.startswith("ping"):
+                # reply
+                channel_send(channel, "pong" + message[4:])
+    
     @pc.on("connectionstatechange")
     async def on_connectionstatechange():
         log_info("Connection state is %s", pc.connectionState)
@@ -188,22 +204,6 @@ async def offer(request):
         async def on_ended():
             log_info("Track %s ended", track.kind)
             await recorder.stop()
-
-
-    @pc.on("datachannel")
-    def on_datachannel(channel):
-        print("DENTRO",channel)
-        global data_channel
-        data_channel = channel
-        channel_log(channel, "-", "created by remote party")
-
-        @channel.on("message")
-        def on_message(message):
-            channel_log(channel, "<", message)
-
-            if isinstance(message, str) and message.startswith("ping"):
-                # reply
-                channel_send(channel, "pong" + message[4:])
 
 
     # handle offer
