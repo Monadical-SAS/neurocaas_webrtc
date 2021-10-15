@@ -44,7 +44,8 @@ class StreamClient:
         record_filename="test.mp4",
         play_from=None,
         ping_pong=False,
-        return_poses=False
+        return_poses=False,
+        transform=''
     ):
         self.signaling = signaling
         self.server_url = url
@@ -54,6 +55,7 @@ class StreamClient:
         self.play_from = play_from
         self.ping_pong = ping_pong
         self.return_poses = return_poses
+        self.transform = transform
 
         self.pc = RTCPeerConnection()
 
@@ -175,6 +177,7 @@ class StreamClient:
 
         # DataChannel
         channel = pc.createDataChannel("data-channel")
+        self.channel_log(channel, "-", "created by local party")
         
 
         async def send_pings():
@@ -203,7 +206,7 @@ class StreamClient:
         sdp = {
             "sdp": pc.localDescription.sdp,
             "type": pc.localDescription.type,
-            "video_transform": f"{self.cfg['cameras']['video_transform']}",
+            "video_transform": self.transform,
             "return_poses": self.return_poses
         }
         # print(sdp)
@@ -304,6 +307,13 @@ async def main():
         default="False",
     )
     
+    parser.add_argument(
+        "--transform",'-tf',
+        help="Video transform option",
+        type=str,
+        default="",
+    )
+    
     parser.add_argument("--verbose", "-v", action="count")
     add_signaling_arguments(parser)
 
@@ -343,12 +353,16 @@ async def main():
         record_filename=args.filename,
         play_from=args.play_from,
         ping_pong=args.ping_pong,
-        return_poses=args.poses
+        return_poses=args.poses,
+        transform=args.transform
     )
     await sc.start()
     # print(sc.worker())
     async for msg in sc.get_reader():
-        print(deserialize_numpy_array(msg))
+        if sc.transform == 'dlclive':
+            print(deserialize_numpy_array(msg))
+        else:
+            print(msg)
 
 
 
