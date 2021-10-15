@@ -10,7 +10,7 @@
             ],
             "fps": 60
         },
-        "video_transform": "edges"
+        "video_transform": "dlclive"
     },
     "processor_dir": [],
     "processor_args": {},
@@ -27,11 +27,9 @@
         "resize": 1.0
     },
     "dlc_display_options": {
-        "dlclive-test": {
-            "cmap": "bgy",
-            "radius": 3,
-            "lik_thresh": 0.5
-        }
+        "cmap": "bgy",
+        "radius": 3,
+        "lik_thresh": 0.5
     },
     "subjects": [
         "test"
