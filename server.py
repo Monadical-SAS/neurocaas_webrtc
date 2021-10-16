@@ -1,31 +1,24 @@
 import argparse
 import asyncio
+import base64
 import json
 import logging
 import os
 import ssl
-import uuid
 import time
+import uuid
 
 import cv2
 import numpy as np
 from aiohttp import web
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import (
-    MediaBlackhole, MediaPlayer,
-    MediaRecorder, MediaRelay
-)
-import base64
-
+from aiortc.contrib.media import (MediaBlackhole, MediaPlayer, MediaRecorder,
+                                  MediaRelay)
 from av import VideoFrame
+
 from dlclive import DLCLive
-
-from utils import (
-    ConfigDLC, run_in_executor,
-    serialize_numpy_array,
-    set_poses_in_frame
-)
-
+from utils import (ConfigDLC, run_in_executor, serialize_numpy_array,
+                   set_poses_in_frame)
 
 ROOT = os.path.dirname(__file__)
 
@@ -68,7 +61,7 @@ class VideoTransformTrack(MediaStreamTrack):
 
     async def recv(self):
         frame = await self.track.recv()
-        channel_send(data_channel, f"Tiempo server: {time.time()}") 
+        # channel_send(data_channel, f"Tiempo server: {time.time()}") 
 
         if self.transform == "cartoon":
             img = frame.to_ndarray(format="bgr24")
