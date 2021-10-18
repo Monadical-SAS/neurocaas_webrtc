@@ -1,35 +1,24 @@
-import logging
 import argparse
 import asyncio
-import logging
-import time
-import platform
-import uuid
 import json
-import requests
-import cv2
+import logging
+import platform
 import signal
+import time
+import uuid
 from datetime import datetime
 
-from aiortc import (
-    RTCIceCandidate,
-    RTCPeerConnection,
-    RTCSessionDescription,
-    RTCConfiguration,
-    RTCIceServer,
-)
-from aiortc.contrib.signaling import BYE, add_signaling_arguments, create_signaling
-from aiortc.contrib.media import (
-    MediaPlayer,
-    MediaRelay,
-    MediaRecorder,
-    MediaStreamError,
-)
-
-from utils import ConfigDLC, deserialize_numpy_array
+import cv2
+import requests
+from aiortc import (RTCConfiguration, RTCIceCandidate, RTCIceServer,
+                    RTCPeerConnection, RTCSessionDescription)
+from aiortc.contrib.media import (MediaPlayer, MediaRecorder, MediaRelay,
+                                  MediaStreamError)
+from aiortc.contrib.signaling import (BYE, add_signaling_arguments,
+                                      create_signaling)
 
 import media
-
+from utils import ConfigDLC, deserialize_numpy_array
 
 logger = logging.getLogger("pc")
 
@@ -109,7 +98,7 @@ class StreamClient:
                     )
                 else:
                     self.webcam = MediaPlayer(
-                        "/dev/video4", format="v4l2", options=options
+                        "/dev/video2", format="v4l2", options=options
                     )
                 self.relay = MediaRelay()
             return None, self.relay.subscribe(self.webcam.video)
@@ -178,7 +167,7 @@ class StreamClient:
         # DataChannel
         channel = pc.createDataChannel("data-channel")
         self.channel_log(channel, "-", "created by local party")
-        
+
 
         async def send_pings():
             while True:
@@ -200,7 +189,7 @@ class StreamClient:
                     elapsed_ms = (self.current_stamp() - int(message[5:])) / 1000
                     print(" RTT %.2f ms" % elapsed_ms)
 
-                
+
         await pc.setLocalDescription(await pc.createOffer())
 
         sdp = {
@@ -298,7 +287,7 @@ async def main():
         type=str,
         default="",
     )
-    
+
     parser.add_argument(
         "--poses",
         help="Return poses in datachannel",
@@ -306,14 +295,14 @@ async def main():
         choices=[True, False],
         default="False",
     )
-    
+
     parser.add_argument(
         "--transform",'-tf',
         help="Video transform option",
         type=str,
         default="",
     )
-    
+
     parser.add_argument("--verbose", "-v", action="count")
     add_signaling_arguments(parser)
 

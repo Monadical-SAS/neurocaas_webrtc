@@ -1,12 +1,13 @@
 import asyncio
+import base64
 import json
 import os
 from functools import partial
 
-import base64
+import colorcet as cc
 import numpy as np
 from PIL import Image, ImageDraw
-import colorcet as cc
+
 
 class ConfigDLC(object):
     """docstring for ConfigDLC."""
@@ -64,6 +65,7 @@ class ConfigDLC(object):
 
 def run_in_executor(func, *args, executor=None, **kwargs):
     callback = partial(func, *args, **kwargs)
+    loop = asyncio.get_event_loop()
     return asyncio.get_event_loop().run_in_executor(executor, callback)
 
 

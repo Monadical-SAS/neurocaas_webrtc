@@ -1,12 +1,12 @@
 import argparse
 import asyncio
+import base64
 import json
 import logging
 import os
 import ssl
 import time
 import uuid
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 import cv2
 import numpy as np
@@ -73,7 +73,7 @@ class VideoTransformTrack(MediaStreamTrack):
 
     async def recv(self):
         frame = await self.track.recv()
-        # channel_send(data_channel, f"Tiempo server: {time.time()}")
+        # channel_send(data_channel, f"Tiempo server: {time.time()}") 
 
         if self.transform == "cartoon":
             img = frame.to_ndarray(format="bgr24")
