@@ -62,8 +62,8 @@ class ConfigDLC(object):
             return {}
 
 
-def run_in_executor(func, *args, executor=None):
-    callback = partial(func, *args)
+def run_in_executor(func, *args, executor=None, **kwargs):
+    callback = partial(func, *args, **kwargs)
     return asyncio.get_event_loop().run_in_executor(executor, callback)
 
 

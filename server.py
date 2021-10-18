@@ -4,28 +4,21 @@ import json
 import logging
 import os
 import ssl
-import uuid
 import time
+import uuid
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 import cv2
 import numpy as np
 from aiohttp import web
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import (
-    MediaBlackhole, MediaPlayer,
-    MediaRecorder, MediaRelay
-)
-import base64
-
+from aiortc.contrib.media import (MediaBlackhole, MediaPlayer, MediaRecorder,
+                                  MediaRelay)
 from av import VideoFrame
+
 from dlclive import DLCLive
-
-from utils import (
-    ConfigDLC, run_in_executor,
-    serialize_numpy_array,
-    set_poses_in_frame
-)
-
+from utils import (ConfigDLC, run_in_executor, serialize_numpy_array,
+                   set_poses_in_frame)
 
 ROOT = os.path.dirname(__file__)
 
@@ -34,6 +27,24 @@ pcs = set()
 relay = MediaRelay()
 data_channel = None
 
+cfg = ConfigDLC('dlc_config').get_config()
+dlc_params = cfg["dlc_options"]
+display_options = cfg['dlc_display_options']
+dlc = DLCLive(**dlc_params)
+width = cfg['cameras']['params']['resolution'][0]
+height = cfg['cameras']['params']['resolution'][1]
+frame = np.zeros((height, width, 3), dtype='uint8')
+dlc.init_inference(frame, record=False)
+
+# executor = ProcessPoolExecutor()
+executor = ThreadPoolExecutor()
+
+def dlc_get_pose(img):
+    t0 = time.time()
+    pose = dlc.get_pose(img, frame_time=time.time(), record=False)
+    t1 = time.time()
+    print(f'Dentro {t1-t0}')
+    return pose
 
 def channel_log(channel, t, message):
     print("channel(%s) %s %s" % (channel.label, t, message))
@@ -41,7 +52,8 @@ def channel_log(channel, t, message):
 
 def channel_send(channel, message):
     # channel_log(channel, ">", message)
-    channel.send(message)
+    if channel:
+        channel.send(message)
 
 
 class VideoTransformTrack(MediaStreamTrack):
@@ -56,19 +68,12 @@ class VideoTransformTrack(MediaStreamTrack):
         self.track = track
         self.transform = transform
         self.return_poses = kwargs.get('return_poses')
-        if self.transform == 'dlclive':
-            self.cfg = ConfigDLC('dlc_config').get_config()
-            self.dlc_params = self.cfg["dlc_options"]
-            self.display_options = self.cfg['dlc_display_options']
-            self.dlc = DLCLive(**self.dlc_params)
-            width = self.cfg['cameras']['params']['resolution'][0]
-            height = self.cfg['cameras']['params']['resolution'][1]
-            frame = np.zeros((height, width, 3), dtype='uint8')
-            self.dlc.init_inference(frame)
+
+
 
     async def recv(self):
         frame = await self.track.recv()
-        channel_send(data_channel, f"Tiempo server: {time.time()}") 
+        # channel_send(data_channel, f"Tiempo server: {time.time()}")
 
         if self.transform == "cartoon":
             img = frame.to_ndarray(format="bgr24")
@@ -102,7 +107,10 @@ class VideoTransformTrack(MediaStreamTrack):
         elif self.transform == "edges":
             # perform edge detection
             img = frame.to_ndarray(format="bgr24")
+            t0 = time.time()
             img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
+            t1 = time.time()
+            print(t1-t0)
 
             # rebuild a VideoFrame, preserving timing information
             new_frame = VideoFrame.from_ndarray(img, format="bgr24")
@@ -124,15 +132,20 @@ class VideoTransformTrack(MediaStreamTrack):
         elif self.transform == "dlclive":
             # Perform pose detections
             img = frame.to_ndarray(format="bgr24")
-            pose = await run_in_executor(self.dlc.get_pose, img)
-            img = await run_in_executor(set_poses_in_frame, img, pose, self.display_options)
+            t0 = time.time()
+            pose = await run_in_executor(dlc_get_pose, img, executor=executor)
+            t1 = time.time()
+            # pose = await run_in_executor(self.dlc.get_pose, img, executor=executor)
+            # img = await run_in_executor(set_poses_in_frame, img, pose, self.display_options, executor=executor)
+            img = await run_in_executor(set_poses_in_frame, img, pose, display_options, executor=executor)
+            print(t1-t0)
             # img = set_poses_in_frame(img, pose, self.display_options)
-            
+
             # rebuild a VideoFrame, preserving timing information
             new_frame = VideoFrame.from_ndarray(img, format="bgr24")
             new_frame.pts = frame.pts
             new_frame.time_base = frame.time_base
-            
+
             if self.return_poses:
                 channel_send(data_channel, serialize_numpy_array(pose))
             return new_frame
@@ -162,7 +175,6 @@ async def offer(request):
 
     @pc.on("datachannel")
     def on_datachannel(channel):
-        print("DENTRO",channel)
         global data_channel
         data_channel = channel
         channel_log(channel, "-", "created by remote party")
@@ -174,7 +186,7 @@ async def offer(request):
             if isinstance(message, str) and message.startswith("ping"):
                 # reply
                 channel_send(channel, "pong" + message[4:])
-    
+
     @pc.on("connectionstatechange")
     async def on_connectionstatechange():
         log_info("Connection state is %s", pc.connectionState)
@@ -192,9 +204,9 @@ async def offer(request):
         elif track.kind == "video":
             pc.addTrack(
                 VideoTransformTrack(
-                    relay.subscribe(track), 
-                    transform=params["video_transform"],
-                    return_poses=params["return_poses"]
+                    relay.subscribe(track),
+                    transform=params.get("video_transform", ""),
+                    return_poses=params.get("return_poses", False)
                 )
             )
             if args.record_to:
@@ -262,4 +274,3 @@ if __name__ == "__main__":
     web.run_app(
         app, access_log=None, host=args.host, port=args.port, ssl_context=ssl_context
     )
-
