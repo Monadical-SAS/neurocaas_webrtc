@@ -3,7 +3,7 @@
 device=${1:-"/dev/video4"}
 mode=${2:-notime}
 size=${3:-"640x480"}
-fps=${4:-60}
+fps=${4:-30}
 
 if [[ $mode == "time" ]]; then
     ffmpeg -re -stream_loop -1 -i dog_clip.avi -r $fps \
