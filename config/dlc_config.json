@@ -8,9 +8,8 @@
                 200,
                 200
             ],
-            "fps": 60
-        },
-        "video_transform": "dlclive"
+            "fps": 30
+        }
     },
     "processor_dir": [],
     "processor_args": {},
