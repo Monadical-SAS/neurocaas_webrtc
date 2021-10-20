@@ -81,6 +81,7 @@ class StreamClient:
             fps = self.cfg['cameras']['params']['fps']
             width = self.cfg['cameras']['params']['resolution'][0]
             height = self.cfg['cameras']['params']['resolution'][1]
+            device = self.cfg['cameras']['params']['device']
 
             options = {
                 "framerate": f"{fps}",
@@ -98,7 +99,7 @@ class StreamClient:
                     )
                 else:
                     self.webcam = MediaPlayer(
-                        "/dev/video2", format="v4l2", options=options
+                        device, format="v4l2", options=options
                     )
                 self.relay = MediaRelay()
             return None, self.relay.subscribe(self.webcam.video)
@@ -121,13 +122,6 @@ class StreamClient:
     async def run_offer(self, pc, signaling):
         # webcam
         audio, video = self.create_local_tracks(self.play_from)
-
-        # pc = RTCPeerConnection()
-        # pc = RTCPeerConnection(
-        #     configuration=RTCConfiguration([
-        #         RTCIceServer("stun:stun.l.google:19302"),
-        #         ]))
-
         pc_id = "PeerConnection(%s)" % uuid.uuid4()
         self.pcs.add(pc)
 
@@ -156,10 +150,6 @@ class StreamClient:
                     await self.recorder.stop()
                 if self.show_video:
                     await self.shower.stop()
-
-        # @pc.on("signalingstatechange")
-        # async def on_signalingstatechange():
-        #     log_info("Signaling state is")
 
         if self.webcam and self.webcam.video:
             pc.addTrack(self.webcam.video)
@@ -198,7 +188,6 @@ class StreamClient:
             "video_transform": self.transform,
             "return_poses": self.return_poses
         }
-        # print(sdp)
 
         try:
             request = requests.post(self.server_url, json=sdp, timeout=10)
@@ -213,16 +202,7 @@ class StreamClient:
         if self.show_video:
             await self.shower.start()
 
-        # task = asyncio.create_task(self.worker(f'worker', self.queue))
         self.reader = self.worker(f"worker", self.queue)
-
-        # while True:
-        # print(f'mensaje melo: {await task.__anext__()}')
-        # return 'holasss'
-        # await asyncio.sleep(1)
-
-        # async for msg in self.reader:
-        # print(f'MENSAJE:  {msg}')
 
     def get_reader(self):
         return self.reader
@@ -235,18 +215,16 @@ class StreamClient:
             # Notify the queue that the "work item" has been processed.
             yield msg
             self.queue.task_done()
-            # print(f"{name} has slept for {msg} seconds")
 
     async def start(self):
         coro = self.run_offer(self.pc, self.signaling)
-        # self.loop.run_until_complete(coro)
         task = asyncio.create_task(coro)
         await task
 
 
 async def main():
     parser = argparse.ArgumentParser(description="Data channels ping/pong")
-    # parser.add_argument("role", choices=["offer", "answer"])
+    
     parser.add_argument(
         "--url", type=str, nargs="?", default="http://127.0.0.1:8080/offer"
     )
@@ -334,6 +312,7 @@ async def main():
         loop.add_signal_handler(
             s, lambda s=s: asyncio.create_task(shutdown(s, loop)))
 
+    # Init client
     sc = StreamClient(
         signaling=signaling,
         url=args.url,
@@ -346,13 +325,15 @@ async def main():
         transform=args.transform
     )
     await sc.start()
-    # print(sc.worker())
+    
     async for msg in sc.get_reader():
         if sc.transform == 'dlclive':
-            print(deserialize_numpy_array(msg))
+            try:
+                print(deserialize_numpy_array(msg))
+            except:
+                print(msg)
         else:
             print(msg)
-
 
 
 if __name__ == "__main__":

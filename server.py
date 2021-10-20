@@ -74,7 +74,7 @@ class VideoTransformTrack(MediaStreamTrack):
 
     async def recv(self):
         frame = await self.track.recv()
-        # channel_send(data_channel, f"Tiempo server: {time.time()}") 
+        # channel_send(data_channel, f"Server Time: {time.time()}")
 
         if self.transform == "cartoon":
             img = frame.to_ndarray(format="bgr24")
@@ -136,11 +136,8 @@ class VideoTransformTrack(MediaStreamTrack):
             t0 = time.time()
             pose = await run_in_executor(dlc_get_pose, img, executor=executor)
             t1 = time.time()
-            # pose = await run_in_executor(self.dlc.get_pose, img, executor=executor)
-            # img = await run_in_executor(set_poses_in_frame, img, pose, self.display_options, executor=executor)
             img = await run_in_executor(set_poses_in_frame, img, pose, display_options, executor=executor)
             print(t1-t0)
-            # img = set_poses_in_frame(img, pose, self.display_options)
 
             # rebuild a VideoFrame, preserving timing information
             new_frame = VideoFrame.from_ndarray(img, format="bgr24")

@@ -16,7 +16,7 @@ class ConfigDLC(object):
         self.cfg_name = namefile
         self.cfg_file = ''
         self.cfg = {}
-        
+
     def get_docs_path(self):
         """ Get path to documents folder
 
@@ -26,7 +26,6 @@ class ConfigDLC(object):
             path to documents folder
         """
 
-        # return os.path.normpath(os.path.expanduser("~/Documents/DeepLabCut-live-GUI"))
         return os.path.normpath(os.path.expanduser("./"))
 
     def get_config_path(self, cfg_name):
@@ -91,7 +90,7 @@ def deserialize_numpy_array(json_dump):
 
 
 def set_poses_in_frame(frame, pose, options):
-    
+
     if frame is not None:
 
         img = Image.fromarray(frame)
@@ -143,5 +142,3 @@ def set_poses_in_frame(frame, pose, options):
 def set_display_colors(bodyparts, cmap):
     all_colors = getattr(cc, cmap)
     return all_colors[:: int(len(all_colors) / bodyparts)]
-
-       
