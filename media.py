@@ -86,7 +86,7 @@ class MyMediaShower:
                 frame = await track.recv()
                 if frame:
                     # self.cps.increment()
-                    cv2.imshow("Video", frame.to_ndarray(format="bgr24"))
+                    cv2.imshow("Video", frame.to_ndarray(format="rgb24"))
                     if cv2.waitKey(1) == ord("q"):
                         self.stopped = True
 
