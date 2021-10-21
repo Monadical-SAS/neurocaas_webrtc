@@ -40,12 +40,11 @@ dlc.init_inference(frame, record=False)
 # executor = ProcessPoolExecutor()
 executor = ThreadPoolExecutor()
 
+
 def dlc_get_pose(img):
-    t0 = time.time()
     pose = dlc.get_pose(img, frame_time=time.time(), record=False)
-    t1 = time.time()
-    print(f'Dentro {t1-t0}')
     return pose
+
 
 def channel_log(channel, t, message):
     print("channel(%s) %s %s" % (channel.label, t, message))
@@ -69,7 +68,6 @@ class VideoTransformTrack(MediaStreamTrack):
         self.track = track
         self.transform = transform
         self.return_poses = kwargs.get('return_poses')
-
 
 
     async def recv(self):
@@ -108,10 +106,7 @@ class VideoTransformTrack(MediaStreamTrack):
         elif self.transform == "edges":
             # perform edge detection
             img = frame.to_ndarray(format="bgr24")
-            t0 = time.time()
             img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
-            t1 = time.time()
-            print(t1-t0)
 
             # rebuild a VideoFrame, preserving timing information
             new_frame = VideoFrame.from_ndarray(img, format="bgr24")
@@ -133,11 +128,8 @@ class VideoTransformTrack(MediaStreamTrack):
         elif self.transform == "dlclive":
             # Perform pose detections
             img = frame.to_ndarray(format="bgr24")
-            t0 = time.time()
             pose = await run_in_executor(dlc_get_pose, img, executor=executor)
-            t1 = time.time()
             img = await run_in_executor(set_poses_in_frame, img, pose, display_options, executor=executor)
-            print(t1-t0)
 
             # rebuild a VideoFrame, preserving timing information
             new_frame = VideoFrame.from_ndarray(img, format="bgr24")
